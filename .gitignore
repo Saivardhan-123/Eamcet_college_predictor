@@ -150,3 +150,5 @@ Thumbs.db
 
 # Large model files (exclude from git due to size)
 eamcet_rank_model*.joblib
+# Allow deployable model
+!eamcet_rank_model_deployable.joblib

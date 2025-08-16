@@ -27,8 +27,9 @@ if not os.path.exists(CACHE_DIR):
 # Initialize ML predictor
 ml_predictor = EamcetRankPredictor()
 
-# Model file paths (prefer specialized model first)
+# Model file paths (prefer deployable model first)
 MODEL_PATHS = [
+    'eamcet_rank_model_deployable.joblib',   # Deployable model for Render
     'eamcet_rank_model_specialized.joblib',  # Specialized model with your actual data
     'eamcet_rank_model_improved_v2.joblib',  # Improved model v2
     'eamcet_rank_model_updated.joblib',      # Updated model with your data
