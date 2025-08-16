@@ -39,6 +39,8 @@ A cutting-edge, AI-powered college prediction platform that provides personalize
 ### Deploy to Render (Recommended)
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/yourusername/Eamcet_college_predictor)
 
+**Live Demo**: [https://your-app-name.onrender.com](https://your-app-name.onrender.com)
+
 1. Click the "Deploy to Render" button above
 2. Connect your GitHub account
 3. Select this repository
