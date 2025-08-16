@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}EAMCET College Predictor{% endblock %}
+
+{% block page_title %}EAMCET College Predictor{% endblock %}
+{% block page_subtitle %}Find your perfect engineering college{% endblock %}
+
+{% block content %}
+<!-- Simple Hero Section -->
+<div class="simple-hero">
+    <div class="hero-content">
+        <h1>Find Your Perfect Engineering College</h1>
+        <p>Get accurate college predictions based on your EAMCET performance</p>
+        
+        <div class="prediction-options">
+            <div class="option-card">
+                <div class="option-icon">🤖</div>
+                <h3>AI Prediction</h3>
+                <p>Don't know your rank? Enter your subject scores and let our AI predict it for you.</p>
+                <a href="{{ url_for('predict_rank') }}" class="btn btn-primary">Start Prediction</a>
+            </div>
+            
+            <div class="option-card">
+                <div class="option-icon">📊</div>
+                <h3>Manual Entry</h3>
+                <p>Already have your rank? Enter it directly to see matching colleges.</p>
+                <a href="{{ url_for('predict') }}" class="btn btn-outline">Enter Rank</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

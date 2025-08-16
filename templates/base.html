@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}EAMCET College Predictor{% endblock %}</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- External CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+    <style>
+        /* Additional inline styles for template-specific customizations */
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="{{ url_for('home') }}" class="nav-logo">
+                🎓 EAMCET Predictor
+            </a>
+            
+            <ul class="nav-menu" id="nav-menu">
+                <li class="nav-item {% if request.endpoint == 'home' %}active{% endif %}">
+                    <a href="{{ url_for('home') }}">🏠 Home</a>
+                </li>
+                <li class="nav-item {% if request.endpoint == 'predict_rank' %}active{% endif %}">
+                    <a href="{{ url_for('predict_rank') }}">🤖 AI Predict</a>
+                </li>
+                <li class="nav-item {% if request.endpoint == 'predict' %}active{% endif %}">
+                    <a href="{{ url_for('predict') }}">📊 Manual</a>
+                </li>
+            </ul>
+            
+            <button class="mobile-menu-btn" id="mobile-menu-btn">☰</button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-container">
+        {% if request.endpoint != 'home' %}
+            {% block header %}
+            <div class="page-header">
+                <h1 class="page-title">{% block page_title %}EAMCET College Predictor{% endblock %}</h1>
+                <p class="page-subtitle">{% block page_subtitle %}Your guide to EAMCET college admissions{% endblock %}</p>
+                
+                {% if data_year and data_source %}
+                <div class="data-source-info">
+                    📊 Data Source: Official TGEAPCET {{ data_year }} Results 
+                    ({% if data_source == 'cached' %}Cached - Updated within 24 hours{% else %}Live from official website{% endif %})
+                </div>
+                {% endif %}
+            </div>
+            {% endblock %}
+        {% endif %}
+        
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- External JavaScript -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
