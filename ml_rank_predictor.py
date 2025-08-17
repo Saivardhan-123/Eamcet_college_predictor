@@ -206,33 +206,55 @@ class EamcetRankPredictor:
         total_score = math_score + physics_score + chemistry_score
         percentile = (total_score / 160) * 100
         
-        # Handle specialized model (simpler feature set)
-        if self.best_model_name == 'specialized_random_forest':
-            features = [[math_score, physics_score, chemistry_score, total_score]]
-            predicted_rank = self.best_model.predict(features)[0]
-        else:
-            # Standard model with full feature engineering
-            features = np.array([[
-                math_score, physics_score, chemistry_score, total_score, percentile,
-                math_score / 80,  # math_ratio
-                (physics_score + chemistry_score) / 2,  # science_avg
-                math_score / (physics_score + chemistry_score + 1)  # math_dominance
-            ]])
-            
-            # Make prediction
-            if self.best_model_name == 'linear_regression':
-                features_scaled = self.scaler.transform(features)
-                predicted_rank = self.best_model.predict(features_scaled)[0]
-            else:
-                predicted_rank = self.best_model.predict(features)[0]
+        # Create prediction based on model type and available feature names
+        predicted_rank = None
         
-        # Handle deployable model (uses feature names)
+        # Check if model has feature_names_in_ attribute (scikit-learn >= 1.0)
         if hasattr(self.best_model, 'feature_names_in_'):
             # Create DataFrame with proper feature names
             import pandas as pd
-            features_df = pd.DataFrame([[math_score, physics_score, chemistry_score]], 
-                                     columns=['mathematics', 'physics', 'chemistry'])
+            
+            # Use the feature names from the model
+            if len(self.best_model.feature_names_in_) == 3:
+                # Basic features only
+                features_df = pd.DataFrame([[math_score, physics_score, chemistry_score]], 
+                                         columns=['mathematics', 'physics', 'chemistry'])
+            else:
+                # Extended feature set
+                features_df = pd.DataFrame([[
+                    math_score, physics_score, chemistry_score, total_score, percentile,
+                    math_score / 80,  # math_ratio
+                    (physics_score + chemistry_score) / 2,  # science_avg
+                    math_score / (physics_score + chemistry_score + 1)  # math_dominance
+                ]], columns=[
+                    'mathematics', 'physics', 'chemistry', 'total_score', 'percentile',
+                    'math_ratio', 'science_avg', 'math_dominance'
+                ])
+                
+                # Filter to only include columns that are in feature_names_in_
+                features_df = features_df[self.best_model.feature_names_in_]
+                
             predicted_rank = self.best_model.predict(features_df)[0]
+        else:
+            # Handle specialized model (simpler feature set)
+            if self.best_model_name == 'specialized_random_forest':
+                features = [[math_score, physics_score, chemistry_score, total_score]]
+                predicted_rank = self.best_model.predict(features)[0]
+            else:
+                # Standard model with full feature engineering
+                features = np.array([[
+                    math_score, physics_score, chemistry_score, total_score, percentile,
+                    math_score / 80,  # math_ratio
+                    (physics_score + chemistry_score) / 2,  # science_avg
+                    math_score / (physics_score + chemistry_score + 1)  # math_dominance
+                ]])
+                
+                # Make prediction
+                if self.best_model_name == 'linear_regression' and self.scaler is not None:
+                    features_scaled = self.scaler.transform(features)
+                    predicted_rank = self.best_model.predict(features_scaled)[0]
+                else:
+                    predicted_rank = self.best_model.predict(features)[0]
         
         # Ensure rank is within valid range
         predicted_rank = max(1, min(150000, int(predicted_rank)))
@@ -305,6 +327,37 @@ class EamcetRankPredictor:
         
         model_data = joblib.load(filepath)
         
+        # Handle direct model object (not wrapped in a dictionary)
+        if not isinstance(model_data, dict):
+            print(f"Loading direct model object of type: {type(model_data).__name__}")
+            self.best_model = model_data
+            
+            # Determine model name based on type
+            if 'RandomForest' in type(model_data).__name__:
+                self.best_model_name = 'random_forest'
+            elif 'GradientBoosting' in type(model_data).__name__:
+                self.best_model_name = 'gradient_boost'
+            elif 'Linear' in type(model_data).__name__:
+                self.best_model_name = 'linear_regression'
+            else:
+                self.best_model_name = type(model_data).__name__
+                
+            # Get feature names if available
+            if hasattr(model_data, 'feature_names_in_'):
+                self.feature_names = model_data.feature_names_in_
+            else:
+                self.feature_names = ['mathematics', 'physics', 'chemistry']
+                
+            # No scaler for direct model
+            self.scaler = None
+            self.is_trained = True
+            
+            print(f"✅ Model loaded from {filepath}")
+            print(f"   Model type: {self.best_model_name}")
+            print(f"   Feature names: {self.feature_names}")
+            return
+        
+        # Handle dictionary-wrapped model
         # Check if this is a specialized model
         if 'version' in model_data and model_data['version'] == 'specialized_v1.0':
             # Load specialized model
