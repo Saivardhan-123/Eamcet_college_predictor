@@ -29,7 +29,7 @@ ml_predictor = EamcetRankPredictor()
 
 # Model file paths (prefer deployable model first)
 MODEL_PATHS = [
-    'eamcet_rank_model_deployable.joblib',   # Deployable model for Render
+    'eamcet_rank_model_deployable.joblib',   # Main deployable model
     'eamcet_rank_model_specialized.joblib',  # Specialized model with your actual data
     'eamcet_rank_model_improved_v2.joblib',  # Improved model v2
     'eamcet_rank_model_updated.joblib',      # Updated model with your data
@@ -50,7 +50,17 @@ for model_path in MODEL_PATHS:
             continue
 
 if not model_loaded:
-    print(f"⚠️ No ML model found. Run updated_training_data.py to train an improved model.")
+    print("⚠️ No ML model found. The application will run with limited functionality.")
+    # In production, we might want to create a fallback model or use synthetic data
+    if os.environ.get('FLASK_ENV') == 'production':
+        try:
+            # Generate and train a basic model for production if none exists
+            print("🔄 Generating fallback model for production...")
+            ml_predictor.generate_and_train_model()
+            model_loaded = True
+            print("✅ Fallback model created successfully")
+        except Exception as e:
+            print(f"❌ Failed to create fallback model: {e}")
 
 def get_current_academic_year():
     """
@@ -462,11 +472,8 @@ def predict():
                          data_source=data_source,
                          error_message=error_message)
 
-if __name__ == '__main__':
-    # Get port from environment variable (for Render) or use default
+if __name__ == "__main__":
+    # Get port from environment variable for deployment platforms
     port = int(os.environ.get('PORT', 5001))
-    
-    # Run in debug mode only in development
-    debug = os.environ.get('FLASK_ENV') == 'development'
-    
-    app.run(host='0.0.0.0', port=port, debug=debug)
+    debug = os.environ.get('FLASK_ENV', 'development') == 'development'
+    app.run(debug=debug, port=port, host='0.0.0.0')

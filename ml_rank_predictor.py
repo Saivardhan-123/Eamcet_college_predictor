@@ -206,7 +206,7 @@ class EamcetRankPredictor:
         total_score = math_score + physics_score + chemistry_score
         percentile = (total_score / 160) * 100
         
-        # Create prediction based on model type and available feature names
+        # Create prediction using proper feature names to avoid warnings
         predicted_rank = None
         
         # Check if model has feature_names_in_ attribute (scikit-learn >= 1.0)
@@ -214,47 +214,67 @@ class EamcetRankPredictor:
             # Create DataFrame with proper feature names
             import pandas as pd
             
-            # Use the feature names from the model
-            if len(self.best_model.feature_names_in_) == 3:
-                # Basic features only
-                features_df = pd.DataFrame([[math_score, physics_score, chemistry_score]], 
-                                         columns=['mathematics', 'physics', 'chemistry'])
-            else:
-                # Extended feature set
-                features_df = pd.DataFrame([[
-                    math_score, physics_score, chemistry_score, total_score, percentile,
-                    math_score / 80,  # math_ratio
-                    (physics_score + chemistry_score) / 2,  # science_avg
-                    math_score / (physics_score + chemistry_score + 1)  # math_dominance
-                ]], columns=[
-                    'mathematics', 'physics', 'chemistry', 'total_score', 'percentile',
-                    'math_ratio', 'science_avg', 'math_dominance'
-                ])
-                
-                # Filter to only include columns that are in feature_names_in_
-                features_df = features_df[self.best_model.feature_names_in_]
-                
+            feature_names = self.best_model.feature_names_in_
+            
+            # Create basic features
+            basic_features = {
+                'mathematics': math_score,
+                'physics': physics_score,
+                'chemistry': chemistry_score
+            }
+            
+            # Add extended features if they exist in the model
+            extended_features = {
+                'total_score': total_score,
+                'percentile': percentile,
+                'math_ratio': math_score / 80,
+                'science_avg': (physics_score + chemistry_score) / 2,
+                'math_dominance': math_score / (physics_score + chemistry_score + 1)
+            }
+            
+            # Only use features that the model was trained with
+            model_features = {}
+            for feature in feature_names:
+                if feature in basic_features:
+                    model_features[feature] = basic_features[feature]
+                elif feature in extended_features:
+                    model_features[feature] = extended_features[feature]
+            
+            # Create DataFrame with only the features the model expects
+            features_df = pd.DataFrame([model_features])
+            
+            # Ensure column order matches the model's expectation
+            features_df = features_df[feature_names]
+            
             predicted_rank = self.best_model.predict(features_df)[0]
         else:
-            # Handle specialized model (simpler feature set)
-            if self.best_model_name == 'specialized_random_forest':
-                features = [[math_score, physics_score, chemistry_score, total_score]]
-                predicted_rank = self.best_model.predict(features)[0]
-            else:
-                # Standard model with full feature engineering
-                features = np.array([[
-                    math_score, physics_score, chemistry_score, total_score, percentile,
-                    math_score / 80,  # math_ratio
-                    (physics_score + chemistry_score) / 2,  # science_avg
-                    math_score / (physics_score + chemistry_score + 1)  # math_dominance
-                ]])
-                
-                # Make prediction
-                if self.best_model_name == 'linear_regression' and self.scaler is not None:
-                    features_scaled = self.scaler.transform(features)
-                    predicted_rank = self.best_model.predict(features_scaled)[0]
+            # Handle models without feature_names_in_ attribute
+            if hasattr(self, 'feature_names') and self.feature_names:
+                # Use saved feature names from model loading
+                if len(self.feature_names) == 3:
+                    # Basic features only
+                    features = np.array([[math_score, physics_score, chemistry_score]])
+                elif len(self.feature_names) == 4:
+                    # Specialized model with total_score
+                    features = np.array([[math_score, physics_score, chemistry_score, total_score]])
                 else:
-                    predicted_rank = self.best_model.predict(features)[0]
+                    # Extended features
+                    features = np.array([[
+                        math_score, physics_score, chemistry_score, total_score, percentile,
+                        math_score / 80,  # math_ratio
+                        (physics_score + chemistry_score) / 2,  # science_avg
+                        math_score / (physics_score + chemistry_score + 1)  # math_dominance
+                    ]])
+            else:
+                # Default to basic 3 features for simple models
+                features = np.array([[math_score, physics_score, chemistry_score]])
+            
+            # Make prediction
+            if self.best_model_name == 'linear_regression' and self.scaler is not None:
+                features_scaled = self.scaler.transform(features)
+                predicted_rank = self.best_model.predict(features_scaled)[0]
+            else:
+                predicted_rank = self.best_model.predict(features)[0]
         
         # Ensure rank is within valid range
         predicted_rank = max(1, min(150000, int(predicted_rank)))
