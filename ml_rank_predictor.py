@@ -226,6 +226,14 @@ class EamcetRankPredictor:
             else:
                 predicted_rank = self.best_model.predict(features)[0]
         
+        # Handle deployable model (uses feature names)
+        if hasattr(self.best_model, 'feature_names_in_'):
+            # Create DataFrame with proper feature names
+            import pandas as pd
+            features_df = pd.DataFrame([[math_score, physics_score, chemistry_score]], 
+                                     columns=['mathematics', 'physics', 'chemistry'])
+            predicted_rank = self.best_model.predict(features_df)[0]
+        
         # Ensure rank is within valid range
         predicted_rank = max(1, min(150000, int(predicted_rank)))
         
