@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  eamcet-predictor:
+    build: .
+    ports:
+      - "5001:5001"
+    environment:
+      - FLASK_ENV=production
+    volumes:
+      - ./cache:/app/cache
+    restart: unless-stopped
